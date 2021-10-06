@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Zork
 {
@@ -19,23 +20,25 @@ namespace Zork
             InitializeRoomDescriptions();
 
             Room previousRoom = null;
-            while (true)
+            Commands command = Commands.UNKNOWN;
+            while (command != Commands.QUIT)
             {
-                Console.WriteLine($"{CurrentRoom}");
+                Console.WriteLine(CurrentRoom);
                 if (previousRoom != CurrentRoom)
                 {
                     Console.WriteLine(CurrentRoom.Description);
                     previousRoom = CurrentRoom;
                 }
-                Commands command = ToCommand(Console.ReadLine().Trim());
-                if (command == Commands.QUIT)
-                {
-                    Console.WriteLine("Thank you for playing!");
-                    break;
-                }
+
+                Console.Write(">");
+                command = ToCommand(Console.ReadLine().Trim());
 
                 switch (command)
                 {
+                    case Commands.QUIT:
+                        Console.WriteLine("Thank you for playing!");
+                        break;
+
                     case Commands.LOOK:
                         Console.WriteLine(CurrentRoom.Description);
                         break;
@@ -44,7 +47,10 @@ namespace Zork
                     case Commands.SOUTH:
                     case Commands.EAST:
                     case Commands.WEST:
-                        Console.Write(Move(command) ? null : "The way is shut!\n");
+                        if (Move(command) == false)
+                        {
+                            Console.WriteLine("The way is shut!");
+                        }
                         break;
 
                     default:
@@ -52,41 +58,40 @@ namespace Zork
                         break;
                 }
             }
-            Console.WriteLine("Finished.");
         }
 
         private static bool Move(Commands command)
         {
+            Assert.IsTrue(Directions.Contains(command), "Invalid Direction");
 
-            bool didMove = false;
-
+            bool isValidMove = true;
             switch (command)
             {
-                case Commands.NORTH when Location.Row < Rooms.GetLength(0) - 1:
-                    Location.Row++;
-                    didMove = true;
+                case Commands.NORTH when Location.Row < 0:
+                    Location.Row--;
                     break;
 
-                case Commands.SOUTH when Location.Row > 0:
-                    Location.Row--;
-                    didMove = true;
+                case Commands.SOUTH when Location.Row > Rooms.GetLength(0) - 1:
+                    Location.Row++;
                     break;
 
                 case Commands.EAST when Location.Column < Rooms.GetLength(1) - 1:
                     Location.Column++;
-                    didMove = true;
                     break;
 
                 case Commands.WEST when Location.Column > 0:
                     Location.Column--;
-                    didMove = true;
+                    break;
+
+                default:
+                    isValidMove = false;
                     break;
             }
 
-            return didMove;
+            return isValidMove;
         }
 
-        private static Commands ToCommand(string commandString) => Enum.TryParse(commandString, true, out Commands result) ? result : Commands.UNKNOWN;
+        public static Commands ToCommand(string commandString) => Enum.TryParse(commandString, ignoreCase: true, out Commands result) ? result : Commands.UNKNOWN;
 
         private static readonly Room[,] Rooms =
         {
@@ -95,13 +100,12 @@ namespace Zork
             { new Room ("Dense Woods"), new Room("North of House"), new Room("Clearing") }
         };
 
-        private static (int Row, int Column) Location = (1, 1);
-
         private static void InitializeRoomDescriptions()
         {
             var roomMap = new Dictionary<string, Room>();
             foreach (Room room in Rooms)
             {
+                roomMap.Add(room.Name, room);
                 roomMap[room.Name] = room;
             }
 
@@ -115,5 +119,15 @@ namespace Zork
             roomMap["North of House"].Description = "You are facing the north side of a white house. There is no door here, and all the windows are barred.";
             roomMap["Clearing"].Description = "You are in a clearing, with a forest surrounding you on the west and south.";
         }
+
+        private static readonly Commands[] Directions =
+        {
+            Commands.NORTH,
+            Commands.SOUTH,
+            Commands.EAST,
+            Commands.WEST,
+        };
+
+        private static (int Row, int Column) Location = (1, 1);
     }
 }

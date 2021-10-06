@@ -2,8 +2,7 @@
 {
 	public class Room
 	{
-		public string Name
-		{ get; }
+		public string Name { get; }
 
 		public string Description { get; set; }
 
